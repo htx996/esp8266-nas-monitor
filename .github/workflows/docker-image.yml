@@ -33,4 +33,4 @@ jobs:
           file: ./nas-server/Dockerfile
           push: true
           tags: |
-            htx996/esp8266-nas-status:latest
+            hanfu1997/esp8266-nas-status:latest
