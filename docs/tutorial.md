@@ -103,17 +103,71 @@ psutil
 
 ## 3. 部署 NAS 端
 
+NAS 端推荐使用 Docker Compose 部署。仓库已经准备好了完整的 NAS 端目录：
+
+```text
+nas-server/
+├── docker-compose.yml
+├── nas_status_server.py
+└── requirements.txt
+```
+
 ### 3.1 上传 nas-server 目录
 
-把仓库里的 `nas-server` 文件夹上传到 NAS，例如：
+把仓库里的 `nas-server` 文件夹上传到 NAS，例如上传到：
 
 ```text
 /volume1/docker/esp8266-nas-status
 ```
 
+上传完成后，这个目录里应该有：
+
+```text
+/volume1/docker/esp8266-nas-status/
+├── docker-compose.yml
+├── nas_status_server.py
+└── requirements.txt
+```
+
 如果你的 NAS 路径不同，可以自行调整。
 
-### 3.2 修改 Token
+### 3.2 docker-compose.yml 完整内容
+
+仓库中的 `nas-server/docker-compose.yml` 内容如下：
+
+```yaml
+services:
+  nas-status:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.12-alpine
+    container_name: esp8266-nas-status
+    restart: unless-stopped
+    network_mode: host
+    working_dir: /app
+    environment:
+      - TOKEN=abc123456
+      - DISK_PATH=/host
+    volumes:
+      - ./:/app
+      - /:/host:ro
+      - /sys:/sys:ro
+    command: sh -c "pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt && python nas_status_server.py"
+```
+
+这段配置的作用：
+
+- `image`：使用 Python 3.12 Alpine 容器镜像。
+- `container_name`：容器名称固定为 `esp8266-nas-status`。
+- `restart: unless-stopped`：NAS 重启后容器会自动启动。
+- `network_mode: host`：使用 NAS 主机网络，接口直接监听 `8088` 端口。
+- `working_dir: /app`：容器内工作目录。
+- `TOKEN=abc123456`：接口访问令牌。
+- `DISK_PATH=/host`：磁盘使用率统计路径。
+- `./:/app`：把当前目录挂载进容器，容器才能读取 Python 文件。
+- `/:/host:ro`：只读挂载 NAS 根目录，用于统计磁盘。
+- `/sys:/sys:ro`：只读挂载系统传感器目录，用于读取温度。
+- `command`：安装依赖并启动状态接口服务。
+
+### 3.3 修改 Token
 
 打开：
 
@@ -127,9 +181,15 @@ nas-server/docker-compose.yml
 - TOKEN=abc123456
 ```
 
-可以保持默认，也可以改成自己的 Token。
+可以保持默认，也可以改成自己的 Token，例如：
 
-### 3.3 启动服务
+```yaml
+- TOKEN=mytoken123
+```
+
+注意：ESP8266 Web 配网页里的 Token 必须和这里一致。
+
+### 3.4 Docker Compose 启动服务
 
 进入 NAS SSH 终端，执行：
 
@@ -138,7 +198,91 @@ cd /volume1/docker/esp8266-nas-status
 docker compose up -d
 ```
 
-### 3.4 测试接口
+如果你的 NAS 使用的是旧版 Docker Compose，也可能需要执行：
+
+```bash
+docker-compose up -d
+```
+
+### 3.5 常用 Docker Compose 命令
+
+查看容器是否启动成功：
+
+```bash
+docker compose ps
+```
+
+查看实时日志：
+
+```bash
+docker compose logs -f
+```
+
+重启服务：
+
+```bash
+docker compose restart
+```
+
+停止并删除容器：
+
+```bash
+docker compose down
+```
+
+修改 `docker-compose.yml` 后重新部署：
+
+```bash
+docker compose up -d
+```
+
+### 3.6 手动创建 docker-compose.yml 的方法
+
+如果你不是从 GitHub 下载整个目录，而是想手动创建文件，可以这样做。
+
+先创建目录：
+
+```bash
+mkdir -p /volume1/docker/esp8266-nas-status
+cd /volume1/docker/esp8266-nas-status
+```
+
+然后新建文件：
+
+```text
+docker-compose.yml
+```
+
+把下面内容完整复制进去：
+
+```yaml
+services:
+  nas-status:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.12-alpine
+    container_name: esp8266-nas-status
+    restart: unless-stopped
+    network_mode: host
+    working_dir: /app
+    environment:
+      - TOKEN=abc123456
+      - DISK_PATH=/host
+    volumes:
+      - ./:/app
+      - /:/host:ro
+      - /sys:/sys:ro
+    command: sh -c "pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt && python nas_status_server.py"
+```
+
+但只创建 `docker-compose.yml` 还不够，同目录下还必须有：
+
+```text
+nas_status_server.py
+requirements.txt
+```
+
+否则容器启动后会找不到 Python 服务文件。
+
+### 3.7 测试接口
 
 浏览器打开：
 
