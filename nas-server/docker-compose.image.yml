@@ -1,6 +1,6 @@
 services:
   nas-status:
-    image: htx996/esp8266-nas-status:latest
+    image: hanfu1997/esp8266-nas-status:latest
     container_name: esp8266-nas-status
     restart: unless-stopped
     network_mode: host
