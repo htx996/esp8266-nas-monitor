@@ -1,0 +1,15 @@
+services:
+  nas-status:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.12-alpine
+    container_name: esp8266-nas-status
+    restart: unless-stopped
+    network_mode: host
+    working_dir: /app
+    environment:
+      - TOKEN=abc123456
+      - DISK_PATH=/host
+    volumes:
+      - ./:/app
+      - /:/host:ro
+      - /sys:/sys:ro
+    command: sh -c "pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt && python nas_status_server.py"
