@@ -6,10 +6,8 @@
 
 - 小屏显示 NAS 状态：CPU、内存、磁盘、CPU 温度、下载速度、上传速度、北京时间、日期
 - NAS 端通过 Docker 部署 HTTP 状态接口
-- ESP8266 支持 AP 配网页
-- 手机连接热点后可进入 Web 配置页
-- 支持 Wi-Fi、NAS IP、端口、Token、刷新间隔、屏幕标题、Web 访问密码配置
-- 支持 Web OTA 上传固件
+- ESP8266 支持 AP 配网页和 Web OTA
+- Web 页面支持 Wi-Fi、NAS IP、端口、Token、刷新间隔、屏幕标题、Web 访问密码配置
 - 支持清除 Wi-Fi 信息、开启 AP、重启设备、恢复出厂设置
 
 ## 仓库结构
@@ -30,14 +28,10 @@ esp8266-nas-monitor/
 │   └── User_Setup.h
 ├── docs/
 │   └── tutorial.md
-└── .github/
-    └── workflows/
-        └── docker-image.yml
+└── .github/workflows/docker-image.yml
 ```
 
 ## 快速开始
-
-### 1. 部署 NAS 端
 
 NAS 端提供两种部署方式，二选一即可，不要同时启动。
 
@@ -46,9 +40,7 @@ NAS 端提供两种部署方式，二选一即可，不要同时启动。
 方式 B：源码目录部署，适合想自己修改 nas_status_server.py 的用户。
 ```
 
-#### 方式 A：专用 Docker 镜像部署，推荐
-
-这种方式只需要一个 `docker-compose.yml`，不需要上传 `nas_status_server.py` 和 `requirements.txt`。
+### 方式 A：专用 Docker 镜像部署，推荐
 
 在 NAS 上创建目录：
 
@@ -57,12 +49,12 @@ mkdir -p /volume1/docker/esp8266-nas-status
 cd /volume1/docker/esp8266-nas-status
 ```
 
-创建 `docker-compose.yml`，内容如下：
+创建 `docker-compose.yml`：
 
 ```yaml
 services:
   nas-status:
-    image: htx996/esp8266-nas-status:latest
+    image: hanfu1997/esp8266-nas-status:latest
     container_name: esp8266-nas-status
     restart: unless-stopped
     network_mode: host
@@ -80,13 +72,7 @@ services:
 docker compose up -d
 ```
 
-如果你的 NAS 使用旧版 Docker Compose，命令可能是：
-
-```bash
-docker-compose up -d
-```
-
-查看容器状态：
+查看状态：
 
 ```bash
 docker compose ps
@@ -104,7 +90,7 @@ docker compose logs -f
 docker compose down
 ```
 
-#### 方式 B：源码目录部署，保留原方法
+### 方式 B：源码目录部署
 
 把 `nas-server` 目录上传到 NAS，例如：
 
@@ -121,34 +107,16 @@ esp8266-nas-status/
 └── requirements.txt
 ```
 
-进入目录并启动：
+启动：
 
 ```bash
 cd /volume1/docker/esp8266-nas-status
 docker compose up -d
 ```
 
-源码目录部署使用的 `docker-compose.yml` 是：
+源码目录部署使用 `nas-server/docker-compose.yml`。
 
-```yaml
-services:
-  nas-status:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.12-alpine
-    container_name: esp8266-nas-status
-    restart: unless-stopped
-    network_mode: host
-    working_dir: /app
-    environment:
-      - TOKEN=abc123456
-      - DISK_PATH=/host
-    volumes:
-      - ./:/app
-      - /:/host:ro
-      - /sys:/sys:ro
-    command: sh -c "pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt && python nas_status_server.py"
-```
-
-#### 参数说明
+## 参数说明
 
 `TOKEN` 是接口访问令牌，默认是：
 
@@ -156,13 +124,7 @@ services:
 - TOKEN=abc123456
 ```
 
-你可以改成自己的，例如：
-
-```yaml
-- TOKEN=mytoken123
-```
-
-ESP8266 Web 配网页里的 Token 必须和这里保持一致。
+ESP8266 Web 配网页里的 Token 必须和 NAS 端一致。
 
 `DISK_PATH` 是磁盘使用率统计路径，默认是：
 
@@ -172,18 +134,12 @@ ESP8266 Web 配网页里的 Token 必须和这里保持一致。
 
 一般保持默认即可。
 
-#### 浏览器测试 NAS 接口
+## 测试 NAS 接口
 
 浏览器打开：
 
 ```text
 http://NAS_IP:8088/status?token=abc123456
-```
-
-例如：
-
-```text
-http://192.168.2.86:8088/status?token=abc123456
 ```
 
 正常会返回：
@@ -192,7 +148,7 @@ http://192.168.2.86:8088/status?token=abc123456
 {"cpu":4,"disk":6,"down":"50KB/s","mem":65,"temp":54,"up":"73KB/s","uptime":365680}
 ```
 
-### 2. 配置 TFT_eSPI
+## 配置 TFT_eSPI
 
 用 `tft-espi/User_Setup.h` 替换 Arduino 库中的：
 
@@ -200,7 +156,7 @@ http://192.168.2.86:8088/status?token=abc123456
 TFT_eSPI/User_Setup.h
 ```
 
-### 3. 烧录 ESP8266 固件
+## 烧录 ESP8266 固件
 
 打开：
 
@@ -215,7 +171,7 @@ esp8266-firmware/esp8266_nas_monitor.ino
 
 然后编译上传。
 
-### 4. Web 配网
+## Web 配网
 
 首次启动或 Wi-Fi 连接失败后，ESP8266 会开启热点：
 
@@ -242,17 +198,10 @@ http://192.168.4.1
 镜像名：
 
 ```text
-htx996/esp8266-nas-status:latest
+hanfu1997/esp8266-nas-status:latest
 ```
 
-如果你修改了 `nas-server/` 目录下的代码，GitHub Actions 会自动构建并推送新镜像。首次使用前需要在 GitHub 仓库 Secrets 中配置：
-
-```text
-DOCKERHUB_USERNAME
-DOCKERHUB_TOKEN
-```
-
-其中 `DOCKERHUB_TOKEN` 是 Docker Hub 里创建的 Access Token。
+首次构建前，需要在 GitHub 仓库的 Actions Secrets 中配置 Docker Hub 用户名和 Docker Hub Access Token。
 
 ## 默认信息
 
