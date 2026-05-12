@@ -34,23 +34,139 @@ esp8266-nas-monitor/
 
 ### 1. 部署 NAS 端
 
+NAS 端推荐使用 Docker Compose 部署。仓库已经提供好了完整的 Compose 配置文件：
+
+```text
+nas-server/docker-compose.yml
+```
+
+#### 方式 A：直接使用仓库里的 nas-server 目录
+
 把 `nas-server` 目录上传到 NAS，例如：
 
-```bash
+```text
 /volume1/docker/esp8266-nas-status
 ```
 
-进入目录并启动：
+目录中应包含 3 个文件：
+
+```text
+esp8266-nas-status/
+├── docker-compose.yml
+├── nas_status_server.py
+└── requirements.txt
+```
+
+进入目录：
 
 ```bash
 cd /volume1/docker/esp8266-nas-status
+```
+
+启动服务：
+
+```bash
 docker compose up -d
 ```
 
-浏览器测试：
+查看容器状态：
+
+```bash
+docker compose ps
+```
+
+查看运行日志：
+
+```bash
+docker compose logs -f
+```
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+重启服务：
+
+```bash
+docker compose restart
+```
+
+#### 方式 B：手动创建 docker-compose.yml
+
+如果不想上传整个仓库，也可以在 NAS 上新建一个目录，然后手动创建 `docker-compose.yml`。
+
+创建目录：
+
+```bash
+mkdir -p /volume1/docker/esp8266-nas-status
+cd /volume1/docker/esp8266-nas-status
+```
+
+创建 `docker-compose.yml`：
+
+```yaml
+services:
+  nas-status:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.12-alpine
+    container_name: esp8266-nas-status
+    restart: unless-stopped
+    network_mode: host
+    working_dir: /app
+    environment:
+      - TOKEN=abc123456
+      - DISK_PATH=/host
+    volumes:
+      - ./:/app
+      - /:/host:ro
+      - /sys:/sys:ro
+    command: sh -c "pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt && python nas_status_server.py"
+```
+
+注意：如果使用方式 B，除了 `docker-compose.yml`，同目录下仍然需要放入：
+
+```text
+nas_status_server.py
+requirements.txt
+```
+
+#### 可自定义参数
+
+`TOKEN` 是接口访问令牌，默认是：
+
+```yaml
+- TOKEN=abc123456
+```
+
+你可以改成自己的，例如：
+
+```yaml
+- TOKEN=mytoken123
+```
+
+ESP8266 Web 配网页里的 Token 必须和这里保持一致。
+
+`DISK_PATH` 是磁盘使用率统计路径，默认是：
+
+```yaml
+- DISK_PATH=/host
+```
+
+一般保持默认即可。
+
+#### 浏览器测试 NAS 接口
+
+浏览器打开：
 
 ```text
 http://NAS_IP:8088/status?token=abc123456
+```
+
+例如：
+
+```text
+http://192.168.2.86:8088/status?token=abc123456
 ```
 
 正常会返回：
