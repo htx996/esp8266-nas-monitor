@@ -1,0 +1,12 @@
+services:
+  nas-status:
+    image: htx996/esp8266-nas-status:latest
+    container_name: esp8266-nas-status
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TOKEN=abc123456
+      - DISK_PATH=/host
+    volumes:
+      - /:/host:ro
+      - /sys:/sys:ro
