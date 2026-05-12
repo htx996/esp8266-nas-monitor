@@ -115,7 +115,7 @@ services:
     network_mode: host
     working_dir: /app
     environment:
-      - TOKEN=abc123456
+      - TOKEN=abc123456  //自定义设置//
       - DISK_PATH=/host
     volumes:
       - ./:/app
