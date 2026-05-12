@@ -34,3 +34,5 @@ jobs:
           push: true
           tags: |
             hanfu1997/esp8266-nas-status:latest
+
+# build trigger: 2026-05-12
