@@ -19,48 +19,59 @@ esp8266-nas-monitor/
 ├── README.md
 ├── LICENSE
 ├── nas-server/
+│   ├── Dockerfile
 │   ├── docker-compose.yml
+│   ├── docker-compose.image.yml
 │   ├── nas_status_server.py
 │   └── requirements.txt
 ├── esp8266-firmware/
 │   └── esp8266_nas_monitor.ino
 ├── tft-espi/
 │   └── User_Setup.h
-└── docs/
-    └── tutorial.md
+├── docs/
+│   └── tutorial.md
+└── .github/
+    └── workflows/
+        └── docker-image.yml
 ```
 
 ## 快速开始
 
 ### 1. 部署 NAS 端
 
-NAS 端推荐使用 Docker Compose 部署。仓库已经提供好了完整的 Compose 配置文件：
+NAS 端提供两种部署方式，二选一即可，不要同时启动。
 
 ```text
-nas-server/docker-compose.yml
+方式 A：专用 Docker 镜像部署，推荐普通用户使用，不需要上传 Python 文件。
+方式 B：源码目录部署，适合想自己修改 nas_status_server.py 的用户。
 ```
 
-#### 方式 A：直接使用仓库里的 nas-server 目录
+#### 方式 A：专用 Docker 镜像部署，推荐
 
-把 `nas-server` 目录上传到 NAS，例如：
+这种方式只需要一个 `docker-compose.yml`，不需要上传 `nas_status_server.py` 和 `requirements.txt`。
 
-```text
-/volume1/docker/esp8266-nas-status
-```
-
-目录中应包含 3 个文件：
-
-```text
-esp8266-nas-status/
-├── docker-compose.yml
-├── nas_status_server.py
-└── requirements.txt
-```
-
-进入目录：
+在 NAS 上创建目录：
 
 ```bash
+mkdir -p /volume1/docker/esp8266-nas-status
 cd /volume1/docker/esp8266-nas-status
+```
+
+创建 `docker-compose.yml`，内容如下：
+
+```yaml
+services:
+  nas-status:
+    image: htx996/esp8266-nas-status:latest
+    container_name: esp8266-nas-status
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TOKEN=abc123456
+      - DISK_PATH=/host
+    volumes:
+      - /:/host:ro
+      - /sys:/sys:ro
 ```
 
 启动服务：
@@ -69,13 +80,19 @@ cd /volume1/docker/esp8266-nas-status
 docker compose up -d
 ```
 
+如果你的 NAS 使用旧版 Docker Compose，命令可能是：
+
+```bash
+docker-compose up -d
+```
+
 查看容器状态：
 
 ```bash
 docker compose ps
 ```
 
-查看运行日志：
+查看日志：
 
 ```bash
 docker compose logs -f
@@ -87,24 +104,31 @@ docker compose logs -f
 docker compose down
 ```
 
-重启服务：
+#### 方式 B：源码目录部署，保留原方法
 
-```bash
-docker compose restart
+把 `nas-server` 目录上传到 NAS，例如：
+
+```text
+/volume1/docker/esp8266-nas-status
 ```
 
-#### 方式 B：手动创建 docker-compose.yml
+目录中应包含：
 
-如果不想上传整个仓库，也可以在 NAS 上新建一个目录，然后手动创建 `docker-compose.yml`。
+```text
+esp8266-nas-status/
+├── docker-compose.yml
+├── nas_status_server.py
+└── requirements.txt
+```
 
-创建目录：
+进入目录并启动：
 
 ```bash
-mkdir -p /volume1/docker/esp8266-nas-status
 cd /volume1/docker/esp8266-nas-status
+docker compose up -d
 ```
 
-创建 `docker-compose.yml`：
+源码目录部署使用的 `docker-compose.yml` 是：
 
 ```yaml
 services:
@@ -115,7 +139,7 @@ services:
     network_mode: host
     working_dir: /app
     environment:
-      - TOKEN=abc123456  #自定义设置
+      - TOKEN=abc123456
       - DISK_PATH=/host
     volumes:
       - ./:/app
@@ -124,14 +148,7 @@ services:
     command: sh -c "pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt && python nas_status_server.py"
 ```
 
-注意：如果使用方式 B，除了 `docker-compose.yml`，同目录下仍然需要放入：
-
-```text
-nas_status_server.py
-requirements.txt
-```
-
-#### 可自定义参数
+#### 参数说明
 
 `TOKEN` 是接口访问令牌，默认是：
 
@@ -214,6 +231,29 @@ http://192.168.4.1
 
 填写 NAS IP、端口、Token 后保存重启。
 
+## Docker 镜像维护说明
+
+专用镜像由 GitHub Actions 自动构建，工作流文件为：
+
+```text
+.github/workflows/docker-image.yml
+```
+
+镜像名：
+
+```text
+htx996/esp8266-nas-status:latest
+```
+
+如果你修改了 `nas-server/` 目录下的代码，GitHub Actions 会自动构建并推送新镜像。首次使用前需要在 GitHub 仓库 Secrets 中配置：
+
+```text
+DOCKERHUB_USERNAME
+DOCKERHUB_TOKEN
+```
+
+其中 `DOCKERHUB_TOKEN` 是 Docker Hub 里创建的 Access Token。
+
 ## 默认信息
 
 - AP 热点：`NAS-Monitor-Setup`
@@ -224,6 +264,7 @@ http://192.168.4.1
 
 ## 注意事项
 
+- 两种 NAS 端部署方式二选一，不要同时启动。
 - 屏幕左上角标题建议使用英文或数字，默认 TFT 字体不支持中文。
 - 如果温度一直显示 27℃，通常是 NAS 端读取到了低温传感器，而不是 CPU Package 温度。本项目 NAS 端代码已优先读取 `Package id 0`。
 - 如果屏幕微闪，可调整 ESP 固件中的 `analogWriteFreq()` 和 `analogWrite(LCD_BL_PIN, value)`。
