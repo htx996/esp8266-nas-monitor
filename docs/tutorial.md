@@ -17,7 +17,9 @@
 ```text
 esp8266-nas-monitor/
 ├── nas-server/
+│   ├── Dockerfile
 │   ├── docker-compose.yml
+│   ├── docker-compose.image.yml
 │   ├── nas_status_server.py
 │   └── requirements.txt
 ├── esp8266-firmware/
@@ -27,31 +29,23 @@ esp8266-nas-monitor/
 └── README.md
 ```
 
-## 2. NAS 端 3 个文件分别做什么
+## 2. NAS 端文件分别做什么
+
+### docker-compose.image.yml
+
+专用 Docker 镜像部署方式使用这个文件。它不需要用户上传 Python 文件，只需要 Docker 自动拉取镜像：
+
+```text
+hanfu1997/esp8266-nas-status:latest
+```
+
+适合普通用户和小白使用。
 
 ### docker-compose.yml
 
-用于启动 Docker 容器。它负责：
+源码目录部署方式使用这个文件。它使用 Python 基础镜像，然后在容器启动时安装依赖并运行本地的 `nas_status_server.py`。
 
-- 使用 Python 3.12 Alpine 镜像
-- 安装 Python 依赖
-- 启动 `nas_status_server.py`
-- 设置接口 Token
-- 挂载 NAS 系统目录用于读取磁盘和温度信息
-
-默认 Token：
-
-```yaml
-- TOKEN=abc123456
-```
-
-你可以改成自己的，例如：
-
-```yaml
-- TOKEN=mytoken123
-```
-
-ESP8266 Web 配网页里的 Token 必须和这里一致。
+适合想自己修改服务代码的用户。
 
 ### nas_status_server.py
 
@@ -101,100 +95,56 @@ psutil
 - `flask` 用来提供 HTTP 接口
 - `psutil` 用来读取 NAS 系统状态
 
+### Dockerfile
+
+用于把 `nas_status_server.py` 和 `requirements.txt` 打包成专用 Docker 镜像。
+
 ## 3. 部署 NAS 端
 
-NAS 端推荐使用 Docker Compose 部署。仓库已经准备好了完整的 NAS 端目录：
+NAS 端提供两种部署方式，二选一即可，不要同时启动。
 
 ```text
-nas-server/
-├── docker-compose.yml
-├── nas_status_server.py
-└── requirements.txt
+方式 A：专用 Docker 镜像部署，推荐普通用户使用。
+方式 B：源码目录部署，适合想自己修改 nas_status_server.py 的用户。
 ```
 
-### 3.1 上传 nas-server 目录
+## 3.1 方式 A：专用 Docker 镜像部署，推荐
 
-把仓库里的 `nas-server` 文件夹上传到 NAS，例如上传到：
+这种方式最简单，不需要上传 `nas_status_server.py`，也不需要上传 `requirements.txt`。
+
+在 NAS 上创建目录：
+
+```bash
+mkdir -p /volume1/docker/esp8266-nas-status
+cd /volume1/docker/esp8266-nas-status
+```
+
+然后新建文件：
 
 ```text
-/volume1/docker/esp8266-nas-status
+docker-compose.yml
 ```
 
-上传完成后，这个目录里应该有：
-
-```text
-/volume1/docker/esp8266-nas-status/
-├── docker-compose.yml
-├── nas_status_server.py
-└── requirements.txt
-```
-
-如果你的 NAS 路径不同，可以自行调整。
-
-### 3.2 docker-compose.yml 完整内容
-
-仓库中的 `nas-server/docker-compose.yml` 内容如下：
+把下面内容完整复制进去：
 
 ```yaml
 services:
   nas-status:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.12-alpine
+    image: hanfu1997/esp8266-nas-status:latest
     container_name: esp8266-nas-status
     restart: unless-stopped
     network_mode: host
-    working_dir: /app
     environment:
       - TOKEN=abc123456
       - DISK_PATH=/host
     volumes:
-      - ./:/app
       - /:/host:ro
       - /sys:/sys:ro
-    command: sh -c "pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt && python nas_status_server.py"
 ```
 
-这段配置的作用：
-
-- `image`：使用 Python 3.12 Alpine 容器镜像。
-- `container_name`：容器名称固定为 `esp8266-nas-status`。
-- `restart: unless-stopped`：NAS 重启后容器会自动启动。
-- `network_mode: host`：使用 NAS 主机网络，接口直接监听 `8088` 端口。
-- `working_dir: /app`：容器内工作目录。
-- `TOKEN=abc123456`：接口访问令牌。
-- `DISK_PATH=/host`：磁盘使用率统计路径。
-- `./:/app`：把当前目录挂载进容器，容器才能读取 Python 文件。
-- `/:/host:ro`：只读挂载 NAS 根目录，用于统计磁盘。
-- `/sys:/sys:ro`：只读挂载系统传感器目录，用于读取温度。
-- `command`：安装依赖并启动状态接口服务。
-
-### 3.3 修改 Token
-
-打开：
-
-```text
-nas-server/docker-compose.yml
-```
-
-找到：
-
-```yaml
-- TOKEN=abc123456
-```
-
-可以保持默认，也可以改成自己的 Token，例如：
-
-```yaml
-- TOKEN=mytoken123
-```
-
-注意：ESP8266 Web 配网页里的 Token 必须和这里一致。
-
-### 3.4 Docker Compose 启动服务
-
-进入 NAS SSH 终端，执行：
+启动服务：
 
 ```bash
-cd /volume1/docker/esp8266-nas-status
 docker compose up -d
 ```
 
@@ -203,8 +153,6 @@ docker compose up -d
 ```bash
 docker-compose up -d
 ```
-
-### 3.5 常用 Docker Compose 命令
 
 查看容器是否启动成功：
 
@@ -230,30 +178,24 @@ docker compose restart
 docker compose down
 ```
 
-修改 `docker-compose.yml` 后重新部署：
+## 3.2 方式 B：源码目录部署，保留原方法
 
-```bash
-docker compose up -d
-```
-
-### 3.6 手动创建 docker-compose.yml 的方法
-
-如果你不是从 GitHub 下载整个目录，而是想手动创建文件，可以这样做。
-
-先创建目录：
-
-```bash
-mkdir -p /volume1/docker/esp8266-nas-status
-cd /volume1/docker/esp8266-nas-status
-```
-
-然后新建文件：
+把仓库里的 `nas-server` 文件夹上传到 NAS，例如上传到：
 
 ```text
-docker-compose.yml
+/volume1/docker/esp8266-nas-status
 ```
 
-把下面内容完整复制进去：
+上传完成后，这个目录里应该有：
+
+```text
+/volume1/docker/esp8266-nas-status/
+├── docker-compose.yml
+├── nas_status_server.py
+└── requirements.txt
+```
+
+源码目录部署使用的 `docker-compose.yml` 内容如下：
 
 ```yaml
 services:
@@ -273,16 +215,38 @@ services:
     command: sh -c "pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt && python nas_status_server.py"
 ```
 
-但只创建 `docker-compose.yml` 还不够，同目录下还必须有：
+进入 NAS SSH 终端，执行：
 
-```text
-nas_status_server.py
-requirements.txt
+```bash
+cd /volume1/docker/esp8266-nas-status
+docker compose up -d
 ```
 
-否则容器启动后会找不到 Python 服务文件。
+## 3.3 参数说明
 
-### 3.7 测试接口
+`TOKEN` 是接口访问令牌，默认是：
+
+```yaml
+- TOKEN=abc123456
+```
+
+你可以改成自己的 Token，例如：
+
+```yaml
+- TOKEN=mytoken123
+```
+
+注意：ESP8266 Web 配网页里的 Token 必须和这里一致。
+
+`DISK_PATH` 是磁盘使用率统计路径，默认是：
+
+```yaml
+- DISK_PATH=/host
+```
+
+一般保持默认即可。
+
+## 3.4 测试接口
 
 浏览器打开：
 
