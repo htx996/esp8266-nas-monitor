@@ -1,0 +1,1 @@
+{"config":{"step":{"user":{"title":"NAS Monitoring Panel","description":"输入 NAS Monitoring Panel 的地址和可选 Web 密码。","data":{"host":"主机名或 IP","port":"端口","username":"用户名","password":"密码"}}},"error":{"cannot_connect":"无法连接到设备。","auth":"认证失败，请检查用户名和密码。"},"abort":{"already_configured":"这个设备已经配置过。"}}}
