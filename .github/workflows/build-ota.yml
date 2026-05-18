@@ -49,16 +49,21 @@ jobs:
           set -e
           find . -type f -name "*.ino" | sort
           if [ -f "esp8266-firmware/esp8266_nas_monitor.ino" ]; then
-            SKETCH="esp8266-firmware/esp8266_nas_monitor.ino"
+            SKETCH_FILE="esp8266-firmware/esp8266_nas_monitor.ino"
           else
-            SKETCH=$(find . -type f -name "*.ino" | sort | head -n 1)
+            SKETCH_FILE=$(find . -type f -name "*.ino" | sort | head -n 1)
           fi
-          if [ -z "$SKETCH" ]; then
+          if [ -z "$SKETCH_FILE" ]; then
             echo "No .ino sketch found" >&2
             exit 1
           fi
-          echo "sketch=$SKETCH" >> "$GITHUB_OUTPUT"
-          echo "Using sketch: $SKETCH"
+          SKETCH_BASENAME=$(basename "$SKETCH_FILE" .ino)
+          SKETCH_DIR="ci-sketch/$SKETCH_BASENAME"
+          mkdir -p "$SKETCH_DIR"
+          cp "$SKETCH_FILE" "$SKETCH_DIR/$SKETCH_BASENAME.ino"
+          echo "sketch_dir=$SKETCH_DIR" >> "$GITHUB_OUTPUT"
+          echo "Using sketch file: $SKETCH_FILE"
+          echo "Compile sketch dir: $SKETCH_DIR"
 
       - name: Compile firmware
         shell: bash
@@ -69,7 +74,7 @@ jobs:
             --fqbn "$FQBN" \
             --additional-urls https://arduino.esp8266.com/stable/package_esp8266com_index.json \
             --output-dir build \
-            "${{ steps.sketch.outputs.sketch }}"
+            "${{ steps.sketch.outputs.sketch_dir }}"
 
       - name: Collect compiled bin
         shell: bash
