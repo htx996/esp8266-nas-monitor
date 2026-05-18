@@ -1,0 +1,116 @@
+name: Build OTA Firmware
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'esp8266-firmware/**'
+      - '*.ino'
+      - '.github/workflows/build-ota.yml'
+    paths-ignore:
+      - 'docs/ota/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build-ota:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      FQBN: esp8266:esp8266:nodemcuv2:eesz=4M1M,xtal=80,dbg=Disabled,lvl=None____,wipe=none
+      OTA_BIN_PATH: docs/ota/esp8266_nas_monitor.bin
+      OTA_MANIFEST_PATH: docs/ota/esp8266_manifest.json
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP8266 core
+        run: |
+          arduino-cli config init --overwrite
+          arduino-cli core update-index --additional-urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli core install esp8266:esp8266 --additional-urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+
+      - name: Install libraries
+        run: |
+          arduino-cli lib update-index
+          arduino-cli lib install "ArduinoJson"
+          arduino-cli lib install "TFT_eSPI"
+
+      - name: Resolve sketch path
+        id: sketch
+        shell: bash
+        run: |
+          set -e
+          if [ -f "esp8266-firmware/esp8266_nas_monitor.ino" ]; then
+            SKETCH="esp8266-firmware/esp8266_nas_monitor.ino"
+          else
+            SKETCH=$(find . -maxdepth 3 -type f -name "*.ino" | head -n 1)
+          fi
+          if [ -z "$SKETCH" ]; then
+            echo "No .ino sketch found" >&2
+            exit 1
+          fi
+          echo "sketch=$SKETCH" >> "$GITHUB_OUTPUT"
+          echo "Using sketch: $SKETCH"
+
+      - name: Compile firmware
+        shell: bash
+        run: |
+          set -e
+          mkdir -p build docs/ota
+          arduino-cli compile \
+            --fqbn "$FQBN" \
+            --additional-urls https://arduino.esp8266.com/stable/package_esp8266com_index.json \
+            --output-dir build \
+            "${{ steps.sketch.outputs.sketch }}"
+
+      - name: Collect compiled bin
+        shell: bash
+        run: |
+          set -e
+          BIN_FILE=$(find build -type f -name "*.bin" | head -n 1)
+          if [ -z "$BIN_FILE" ]; then
+            echo "Compiled .bin not found" >&2
+            find build -maxdepth 2 -type f | sort
+            exit 1
+          fi
+          cp "$BIN_FILE" "$OTA_BIN_PATH"
+          echo "Using bin: $BIN_FILE"
+
+      - name: Generate OTA manifest
+        shell: bash
+        run: |
+          set -e
+          BUILD_ID=$(TZ=Asia/Shanghai date +%Y%m%d%H%M%S)
+          VERSION=$(TZ=Asia/Shanghai date +%Y-%m-%d)
+          cat > "$OTA_MANIFEST_PATH" <<EOF
+          {
+            "version": "$VERSION",
+            "build_id": "$BUILD_ID",
+            "bin_url": "https://htx996.github.io/esp8266-nas-monitor/ota/esp8266_nas_monitor.bin",
+            "notes": "GitHub Pages OTA build"
+          }
+          EOF
+          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Commit OTA files
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OTA_BIN_PATH" "$OTA_MANIFEST_PATH"
+          if git diff --cached --quiet; then
+            echo "No OTA file changes to commit"
+            exit 0
+          fi
+          git commit -m "Auto build OTA firmware"
+          git push
