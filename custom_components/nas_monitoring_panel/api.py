@@ -24,18 +24,18 @@ class EspNasMonitorApi:
         self._username = username or None
         self._password = password or None
 
-    def _url(self, path: str) -> str:
-        return str(URL.build(scheme="http", host=self._host, port=self._port, path=path))
+    def _url(self, path: str, **query: Any) -> str:
+        return str(URL.build(scheme="http", host=self._host, port=self._port, path=path, query=query or None))
 
     def _auth(self) -> aiohttp.BasicAuth | None:
         if self._username and self._password:
             return aiohttp.BasicAuth(self._username, self._password)
         return None
 
-    async def _get_json(self, path: str) -> dict[str, Any]:
+    async def _get_json(self, path: str, **query: Any) -> dict[str, Any]:
         try:
             async with self._session.get(
-                self._url(path),
+                self._url(path, **query),
                 auth=self._auth(),
                 timeout=aiohttp.ClientTimeout(total=5),
             ) as resp:
@@ -48,10 +48,10 @@ class EspNasMonitorApi:
         except aiohttp.ClientError as exc:
             raise ConnectionError(f"Device request failed: {exc}") from exc
 
-    async def _get_text(self, path: str) -> str:
+    async def _get_text(self, path: str, **query: Any) -> str:
         try:
             async with self._session.get(
-                self._url(path),
+                self._url(path, **query),
                 auth=self._auth(),
                 timeout=aiohttp.ClientTimeout(total=5),
             ) as resp:
@@ -75,6 +75,11 @@ class EspNasMonitorApi:
     async def turn_off(self) -> None:
         """Turn screen off."""
         await self._get_text("/api/display/off")
+
+    async def set_brightness(self, value: int) -> None:
+        """Set screen brightness in percent (0-100)."""
+        value = max(0, min(100, int(value)))
+        await self._get_text("/api/display/brightness", value=value)
 
     async def test_connection(self) -> None:
         """Validate connectivity and credentials."""
