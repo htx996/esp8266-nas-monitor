@@ -1,6 +1,0 @@
-{
-  "version": "2026.5.18",
-  "build_id": "20260518151113",
-  "bin_url": "https://htx996.github.io/esp8266-nas-monitor/ota/esp8266_manifest.json",
-  "notes": "Upload the latest compiled ESP8266 binary to ota/esp8266_nas_monitor.bin before using online OTA."
-}
