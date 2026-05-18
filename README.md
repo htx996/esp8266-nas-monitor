@@ -14,6 +14,7 @@
 - Web 页面支持 Wi-Fi、NAS IP、端口、Token、刷新间隔、屏幕标题、Web 访问密码配置
 - 支持清除 Wi-Fi 信息、开启 AP、重启设备、恢复出厂设置
 - 提供 Home Assistant 自定义集成 `NAS Monitoring Panel`
+- Home Assistant 中以 Light 实体形式显示，支持开关和亮度调节
 
 ## 仓库结构
 
@@ -32,6 +33,7 @@ esp8266-nas-monitor/
 ├── custom_components/
 │   └── nas_monitoring_panel/
 │       ├── manifest.json
+│       ├── light.py
 │       ├── icon.png
 │       ├── icon@2x.png
 │       ├── logo.png
@@ -235,6 +237,21 @@ Username：admin
 Password：如果 ESP 没开 Web 密码就留空
 ```
 
+### 集成效果
+
+集成现在会以 Light 实体显示：
+
+```text
+NAS Monitoring Panel
+```
+
+支持：
+
+```text
+- 开关
+- 亮度滑条
+```
+
 ### 集成依赖的 ESP 接口
 
 ESP 固件必须提供：
@@ -243,7 +260,23 @@ ESP 固件必须提供：
 /api/display/on
 /api/display/off
 /api/display/status
+/api/display/brightness?value=80
 ```
+
+其中 `/api/display/status` 需要返回亮度字段，推荐格式：
+
+```json
+{
+  "power": true,
+  "state": "on",
+  "brightness": 80,
+  "schedule_enabled": true,
+  "on_time": "08:00",
+  "off_time": "23:00"
+}
+```
+
+亮度值使用 0 到 100 百分比。
 
 ### 品牌图标说明
 
@@ -287,6 +320,7 @@ hanfu1997/esp8266-nas-status:latest
 - 屏幕左上角标题建议使用英文或数字，默认 TFT 字体不支持中文。
 - 如果温度一直显示 27℃，通常是 NAS 端读取到了低温传感器，而不是 CPU Package 温度。本项目 NAS 端代码已优先读取 `Package id 0`。
 - 如果屏幕微闪，可调整 ESP 固件中的 `analogWriteFreq()` 和 `analogWrite(LCD_BL_PIN, value)`。
+- Home Assistant 亮度控制依赖 ESP 固件新增亮度接口，只有更新固件后才会生效。
 
 ## License
 
