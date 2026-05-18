@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ESP8266 NAS Monitor",
+        "description": "Enter the ESP8266 NAS Monitor address and optional Web password.",
+        "data": {
+          "host": "Host or IP",
+          "port": "Port",
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the ESP8266 device.",
+      "auth": "Authentication failed. Check the username and password."
+    },
+    "abort": {
+      "already_configured": "This ESP8266 device is already configured."
+    }
+  }
+}
