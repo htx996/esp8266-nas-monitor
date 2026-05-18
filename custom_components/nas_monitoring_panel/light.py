@@ -18,7 +18,7 @@ from .const import (
     CONF_PORT,
     CONF_USERNAME,
     DEFAULT_BRIGHTNESS,
-    DEFAULT_LIGHT_NAME,
+    DEFAULT_NAME,
     DOMAIN,
 )
 
@@ -67,7 +67,7 @@ class NasMonitoringPanelCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_light",
+            name=DOMAIN,
             update_interval=timedelta(seconds=15),
         )
         self.api = api
@@ -80,10 +80,10 @@ class NasMonitoringPanelCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
 
 class NasMonitoringPanelLight(LightEntity):
-    """Light entity for NAS Monitoring Panel screen brightness."""
+    """Light entity for NAS Monitoring Panel screen."""
 
-    _attr_name = DEFAULT_LIGHT_NAME
-    _attr_icon = "mdi:brightness-6"
+    _attr_name = DEFAULT_NAME
+    _attr_icon = "mdi:monitor"
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
     _attr_color_mode = ColorMode.BRIGHTNESS
 
@@ -96,7 +96,7 @@ class NasMonitoringPanelLight(LightEntity):
         self._entry = entry
         self._coordinator = coordinator
         self._api = api
-        self._attr_unique_id = f"{entry.entry_id}_light"
+        self._attr_unique_id = f"{entry.entry_id}_screen"
 
     @property
     def available(self) -> bool:
