@@ -1,7 +1,7 @@
 # ESP8266 NAS Monitor
 
 <p align="center">
-  <img src="custom_components/nas_monitoring_panel/icon.svg" alt="NAS Monitoring Panel" width="160">
+  <img src="custom_components/nas_monitoring_panel/icon.png" alt="NAS Monitoring Panel" width="160">
 </p>
 
 基于 ESP8266 + ST7789 240x240 TFT 的 NAS 状态监控小屏项目。
@@ -13,6 +13,7 @@
 - ESP8266 支持 AP 配网页和 Web OTA
 - Web 页面支持 Wi-Fi、NAS IP、端口、Token、刷新间隔、屏幕标题、Web 访问密码配置
 - 支持清除 Wi-Fi 信息、开启 AP、重启设备、恢复出厂设置
+- 提供 Home Assistant 自定义集成 `NAS Monitoring Panel`
 
 ## 仓库结构
 
@@ -31,7 +32,9 @@ esp8266-nas-monitor/
 ├── custom_components/
 │   └── nas_monitoring_panel/
 │       ├── manifest.json
-│       ├── icon.svg
+│       ├── icon.png
+│       ├── icon@2x.png
+│       ├── logo.png
 │       └── ...
 ├── tft-espi/
 │   └── User_Setup.h
@@ -195,6 +198,64 @@ http://192.168.4.1
 ```
 
 填写 NAS IP、端口、Token 后保存重启。
+
+## Home Assistant 使用方法
+
+### HACS 添加自定义仓库
+
+在 HACS 中添加自定义仓库：
+
+```text
+Repository: https://github.com/htx996/esp8266-nas-monitor
+Category: Integration
+```
+
+然后搜索并安装：
+
+```text
+NAS Monitoring Panel
+```
+
+安装后重启 Home Assistant。
+
+### 添加集成
+
+进入：
+
+```text
+设置 → 设备与服务 → 添加集成 → NAS Monitoring Panel
+```
+
+填写：
+
+```text
+Host or IP：ESP 设备 IP
+Port：80
+Username：admin
+Password：如果 ESP 没开 Web 密码就留空
+```
+
+### 集成依赖的 ESP 接口
+
+ESP 固件必须提供：
+
+```text
+/api/display/on
+/api/display/off
+/api/display/status
+```
+
+### 品牌图标说明
+
+Home Assistant 2026.3 之后，自定义集成应直接在自己的集成目录中提供品牌资源，因此本仓库已内置：
+
+```text
+custom_components/nas_monitoring_panel/icon.png
+custom_components/nas_monitoring_panel/icon@2x.png
+custom_components/nas_monitoring_panel/logo.png
+```
+
+如果 HACS 或 Home Assistant 仍显示旧占位图，请重启 Home Assistant 并清理浏览器缓存。
 
 ## Docker 镜像维护说明
 
