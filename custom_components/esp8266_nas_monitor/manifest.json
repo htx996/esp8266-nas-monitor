@@ -1,6 +1,6 @@
 {
   "domain": "esp8266_nas_monitor",
-  "name": "ESP8266 NAS Monitor",
+  "name": "NAS Monitoring Panel",
   "codeowners": ["@htx996"],
   "config_flow": true,
   "documentation": "https://github.com/htx996/esp8266-nas-monitor",
