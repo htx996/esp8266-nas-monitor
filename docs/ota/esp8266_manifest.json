@@ -1,6 +1,6 @@
 {
   "version": "2026-05-18",
   "build_id": "20260518155122",
-  "bin_url": "https://htx996.github.io/esp8266-nas-monitor/ota/esp8266_nas_monitor.bin",
+  "bin_url": "https://htx996.github.io/esp8266-nas-monitor/docs/ota/esp8266_manifest.json",
   "notes": "GitHub Pages OTA build"
 }
