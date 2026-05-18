@@ -9,8 +9,6 @@ on:
       - 'esp8266-firmware/**'
       - '*.ino'
       - '.github/workflows/build-ota.yml'
-    paths-ignore:
-      - 'docs/ota/**'
 
 permissions:
   contents: write
@@ -99,7 +97,6 @@ jobs:
             "notes": "GitHub Pages OTA build"
           }
           EOF
-          echo "build_id=$BUILD_ID" >> "$GITHUB_OUTPUT"
 
       - name: Commit OTA files
         shell: bash
