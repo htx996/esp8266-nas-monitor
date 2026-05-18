@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ESP8266 NAS Monitor",
+        "description": "输入 ESP8266 NAS Monitor 的地址和可选 Web 密码。",
+        "data": {
+          "host": "主机名或 IP",
+          "port": "端口",
+          "username": "用户名",
+          "password": "密码"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接到 ESP8266 设备。",
+      "auth": "认证失败，请检查用户名和密码。"
+    },
+    "abort": {
+      "already_configured": "这个 ESP8266 设备已经配置过。"
+    }
+  }
+}
