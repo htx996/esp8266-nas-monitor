@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - 'esp8266-firmware/**'
-      - '*.ino'
+      - '**/*.ino'
       - '.github/workflows/build-ota.yml'
 
 permissions:
@@ -47,10 +47,11 @@ jobs:
         shell: bash
         run: |
           set -e
+          find . -type f -name "*.ino" | sort
           if [ -f "esp8266-firmware/esp8266_nas_monitor.ino" ]; then
             SKETCH="esp8266-firmware/esp8266_nas_monitor.ino"
           else
-            SKETCH=$(find . -maxdepth 3 -type f -name "*.ino" | head -n 1)
+            SKETCH=$(find . -type f -name "*.ino" | sort | head -n 1)
           fi
           if [ -z "$SKETCH" ]; then
             echo "No .ino sketch found" >&2
@@ -74,10 +75,10 @@ jobs:
         shell: bash
         run: |
           set -e
-          BIN_FILE=$(find build -type f -name "*.bin" | head -n 1)
+          BIN_FILE=$(find build -type f -name "*.bin" | sort | head -n 1)
           if [ -z "$BIN_FILE" ]; then
             echo "Compiled .bin not found" >&2
-            find build -maxdepth 2 -type f | sort
+            find build -maxdepth 3 -type f | sort
             exit 1
           fi
           cp "$BIN_FILE" "$OTA_BIN_PATH"
