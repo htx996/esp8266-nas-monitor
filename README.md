@@ -1,5 +1,9 @@
 # ESP8266 NAS Monitor
 
+<p align="center">
+  <img src="custom_components/nas_monitoring_panel/icon.svg" alt="NAS Monitoring Panel" width="160">
+</p>
+
 基于 ESP8266 + ST7789 240x240 TFT 的 NAS 状态监控小屏项目。
 
 ## 功能
@@ -24,6 +28,11 @@ esp8266-nas-monitor/
 │   └── requirements.txt
 ├── esp8266-firmware/
 │   └── esp8266_nas_monitor.ino
+├── custom_components/
+│   └── nas_monitoring_panel/
+│       ├── manifest.json
+│       ├── icon.svg
+│       └── ...
 ├── tft-espi/
 │   └── User_Setup.h
 ├── docs/
