@@ -1,5 +1,5 @@
 {
-  "name": "ESP8266 NAS Monitor",
+  "name": "NAS Monitoring Panel",
   "render_readme": true,
   "homeassistant": "2024.6.0"
 }
